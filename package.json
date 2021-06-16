@@ -1,0 +1,25 @@
+{
+  "name": "pokemon usage stats parser",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "babel-node app.js -g 4 -f ou --pokemon Tyranitar --year 2021 --month 03 --rating 1760"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "request": "^2.88.2",
+    "ts-node": "^10.0.0",
+    "typescript": "^4.3.2",
+    "yargs": "^17.0.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.14.6",
+    "@babel/node": "^7.14.5",
+    "@babel/preset-env": "^7.14.5",
+    "@types/node": "^15.6.1",
+    "nodemon": "^2.0.7"
+  }
+}
