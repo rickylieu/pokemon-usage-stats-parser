@@ -6,8 +6,9 @@ export class SmogonStatsFileDownloader {
     constructor() {
     }
 
-    // Need to fix error if dest directory does not exist
-    download(url, directory, filePath, cb) {
+    async download(url, directory, filePath, pokemon, cb) {
+        return new Promise((resolve, reject) => {
+        var test = "";
         // If file does not exist, check if directory exists. If not, create it
         if (!fs.existsSync(directory)) {
             console.log("Directory does not exist - creating directory: " + directory);
@@ -21,7 +22,8 @@ export class SmogonStatsFileDownloader {
         // Verify response code
         sendReq.on('response', (response) => {
             if (response.statusCode !== 200) {
-                return cb('Response status was ' + response.statusCode);
+                cb(pokemon, 'Response status was ' + response.statusCode);
+                reject(response.statusCode);
             }
 
             sendReq.pipe(file);
@@ -30,21 +32,27 @@ export class SmogonStatsFileDownloader {
         // close() is async, call cb after close completes
         file.on('finish', () => {
             console.log("Finished downloading file");
-            file.close(cb)
+            cb(pokemon).then(response => {
+                //console.log("DOWNLOAD RESPONSE: " + response);
+                resolve(response);
+            });
         });
+
+    });
 
         // Check for request errors
-        sendReq.on('error', (err) => {
-            console.log(4)
+       /* sendReq.on('error', (err) => {
+            console.log("error: " + error.message);
             fs.unlink(filePath);
-            return cb(err.message);
+            return cb(pokemon, err.message);
         });
 
+
         file.on('error', (err) => { // Handle errors
-            console.log("error: " + err.message)
+            console.log("error: " + err.message);
             fs.unlink(filePath); // Delete the file async. (But we don't check the result)
-            return cb(err.message);
-        });
+            return cb(pokemon, err.message);
+        });*/
     };
 }
 

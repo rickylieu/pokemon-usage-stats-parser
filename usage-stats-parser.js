@@ -3,6 +3,54 @@ export class UsageStatsParser {
     constructor() {
     }
 
+    setPokemon(pokemon) {
+        this.pokemon = pokemon;
+    }
+
+    setGen(gen) {
+        this.gen = gen;
+    }
+
+    setFormat(format) {
+        this.format = format;
+    }
+
+    setYear(year) {
+        this.year = year;
+    }
+
+    setMonth(month) {
+        this.month = month;
+    }
+
+    setRating(rating) {
+        this.rating = rating;
+    }
+
+    getPokemon() {
+        return this.pokemon;
+    }
+
+    getGen() {
+        return this.gen;
+    }
+
+    getFormat() {
+        return this.format;
+    }
+
+    getYear() {
+        return this.year;
+    }
+
+    getMonth() {
+        return this.month;
+    }
+
+    getRating() {
+        return this.rating;
+    }
+
     withPokemon(pokemon) {
         this.pokemon = pokemon;
         return this;
@@ -33,52 +81,73 @@ export class UsageStatsParser {
         return this;
     }
 
-    toJSON() {
+    async toJSON() {
         var pokedex = require('./data/pokedex.js')['BattlePokedex'];
         var moves = require('./data/moves.js')['BattleMovedex'];
         var abilities = require('./data/abilities.js')['BattleAbilities'];
         var items = require('./data/items.js')['BattleItems'];
 
-        var date = this.year + "-" + this.month;
+        var date = this.getYear() + "-" + this.getMonth();
         
-        var fileName = "gen" + this.gen + this.format + "-" + this.rating + ".json";
+        var fileName = "gen" + this.getGen() + this.getFormat() + "-" + this.getRating() + ".json";
         var directory = "./downloads/stats/" + date;
         var filePath = directory + "/" + fileName;
 
         var download = require('./smogon-stats-file-downloader.js');
         var fs = require('fs');
-        // Only download file if not downloaded already. May want to look into checking the last updated time to download. Or just force download
+        // Only download file if not downloaded already or file cannot be parsed
         if (fs.existsSync(filePath)) {
-            return JSON.stringify(getStats(this.pokemon, null));
+            console.log("File exists?")
+            var file = fs.readFileSync(filePath, 'utf-8');
+            try {
+                data = JSON.parse(file)['data'];
+                return await getStats(this.getPokemon(), null);
+            } catch {
+                console.log("Failed to parse json. Re-downloading");
+            }
         }
-        else {
-            var url = new download.SmogonStatsUrlBuilder()
-                .setGen(this.gen)
-                .setFormat(this.format)
-                .setDate(this.date)
-                .setRating(this.rating)
+        var url = new download.SmogonStatsUrlBuilder()
+                .setGen(this.getGen())
+                .setFormat(this.getFormat())
+                .setDate(date)
+                .setRating(this.getRating())
                 .toString();
-            console.log("File does not exist - downloading: " + url);
-            new download.SmogonStatsFileDownloader().download(url, directory, filePath, this.pokemon, getStats);
-        }
+        console.log("Downloading file: " + url);
+        return await new download.SmogonStatsFileDownloader()
+            .download(url, directory, filePath, this.getPokemon(), getStats)
+            .then(resolve => {
+                return resolve;
+            });
+
 
         // Main callback function     
-        function getStats(pokemon, error) {
+        async function getStats(pokemon, error) {
             if (error != null) {
                 console.log("error: " + error);
                 return;
             }
             // Grab all JSON data
-            var data = JSON.parse(fs.readFileSync(filePath, 'utf-8'))['data'];
+            var file = fs.readFileSync(filePath, 'utf-8');
+            var data;
+            
+            var maxAttempts = 1000000;
+            var attempts = 0;
+            try {
+                data = JSON.parse(file)['data'];
+            } catch (error) {
+                Promise.reject("{}");
+                return "{}";
+            }            
+
             if (pokedex[pokemon] == null) {
                 console.log("Invalid pokemon name");
-                return;
+                return "{}";
             }
             var pokemonDisplayName = pokedex[pokemon]['name'];
             var pokemonData = data[pokemonDisplayName];
             if (pokemonData == null) {
                 console.log("No data - either the Pokemon does not exist, is banned, or is never used in this format");
-                return;
+                return "{}";
             }
     
             //Processing steps. Convert to percentage and sort
@@ -87,7 +156,7 @@ export class UsageStatsParser {
             var sortedMoves = new processor.StatsProcessor(pokemonData['Moves'], moves, 4).process();
             var sortedAbilities = new processor.StatsProcessor(pokemonData['Abilities'], abilities, 1).process();
             var sortedItems = new processor.StatsProcessor(pokemonData['Items'], items, 1).process();
-            
+
             // Build stats and return
             var stats = require('./usage-stats.js');
             var usageStats = new stats.UsageStatsBuilder(pokemon)
@@ -95,10 +164,9 @@ export class UsageStatsParser {
                 .setAbilities(sortedAbilities)
                 .setItems(sortedItems)
                 .build();
-            console.log(JSON.stringify(usageStats.toJSON(), null, 2));
-            console.log("End: " + Date.now());
-            return usageStats.toJSON();
+
+            const json = await JSON.stringify(usageStats.toJSON(), null, 2);
+            return json;
         }
     }
-
 }

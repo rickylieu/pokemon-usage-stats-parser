@@ -4,12 +4,11 @@ var hostname = '127.0.0.1';
 var port = 3000;
 var server = http.createServer(function (req, res) {
     res.setHeader('Content-Type', 'text/plain');
-    console.log("Start: " + Date.now());
     var fs = require('fs');
     var request = require('request');
     var yargs = require('yargs');
     var https = require('https');
- 
+
     //Parse command line args
     var args = yargs
         .option("pokemon", {
@@ -66,8 +65,21 @@ var server = http.createServer(function (req, res) {
         .withYear(year)
         .withMonth(month)
         .withRating(rating);
-    console.log(usageStatsParser.toJSON());
-    res.statusCode = 200;
+    usageStatsParser.toJSON().then((response) => {
+        console.log("responseJSON: " + response)
+    });
+
+    usageStatsParser.setPokemon("raikou");
+    usageStatsParser.toJSON().then((response) => {
+        console.log("responseJSON: " + response)
+    });
+
+    usageStatsParser.setGen("7");
+    usageStatsParser.toJSON().then((response) => {
+        console.log("responseJSON: " + response)
+        //res.end(response);
+    });
+
 });
 server.listen(port, hostname, function () {
     console.log("Server running at http://" + hostname + ":" + port + "/");
