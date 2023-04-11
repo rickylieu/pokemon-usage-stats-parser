@@ -6,7 +6,7 @@ export class SmogonStatsFileDownloader {
     constructor() {
     }
 
-    async download(url, directory, filePath, pokemon, cb) {
+    async download(url, directory, filePath) {
         return new Promise((resolve, reject) => {
         var test = "";
         // If file does not exist, check if directory exists. If not, create it
@@ -22,7 +22,6 @@ export class SmogonStatsFileDownloader {
         // Verify response code
         sendReq.on('response', (response) => {
             if (response.statusCode !== 200) {
-                cb(pokemon, 'Response status was ' + response.statusCode);
                 reject(response.statusCode);
             }
 
@@ -32,10 +31,7 @@ export class SmogonStatsFileDownloader {
         // close() is async, call cb after close completes
         file.on('finish', () => {
             console.log("Finished downloading file");
-            cb(pokemon).then(response => {
-                //console.log("DOWNLOAD RESPONSE: " + response);
-                resolve(response);
-            });
+            resolve("Finished downloading file");
         });
 
     });

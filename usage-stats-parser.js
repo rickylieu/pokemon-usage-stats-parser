@@ -96,42 +96,42 @@ export class UsageStatsParser {
         var download = require('./smogon-stats-file-downloader.js');
         var fs = require('fs');
         // Only download file if not downloaded already or file cannot be parsed
+        var shouldDownload = true;
         if (fs.existsSync(filePath)) {
-            console.log("File exists?")
             var file = fs.readFileSync(filePath, 'utf-8');
             try {
-                data = JSON.parse(file)['data'];
-                return await getStats(this.getPokemon(), null);
-            } catch {
+                JSON.parse(file)['data'];
+                shouldDownload = false;
+            } catch(error) {
+                console.log("error: " + error);
                 console.log("Failed to parse json. Re-downloading");
             }
         }
-        var url = new download.SmogonStatsUrlBuilder()
+        if (shouldDownload) {
+            var url = new download.SmogonStatsUrlBuilder()
                 .setGen(this.getGen())
                 .setFormat(this.getFormat())
                 .setDate(date)
                 .setRating(this.getRating())
                 .toString();
-        console.log("Downloading file: " + url);
-        return await new download.SmogonStatsFileDownloader()
-            .download(url, directory, filePath, this.getPokemon(), getStats)
-            .then(resolve => {
-                return resolve;
-            });
+            console.log("Downloading file: " + url);
+            await new download.SmogonStatsFileDownloader()
+                .download(url, directory, filePath)
+                .then(resolve => {
+                    return resolve;
+                });
+        }
+
+        console.log("getting stats");
+        return await getStats(this.getPokemon());
 
 
         // Main callback function     
-        async function getStats(pokemon, error) {
-            if (error != null) {
-                console.log("error: " + error);
-                return;
-            }
+        async function getStats(pokemon) {
             // Grab all JSON data
             var file = fs.readFileSync(filePath, 'utf-8');
             var data;
             
-            var maxAttempts = 1000000;
-            var attempts = 0;
             try {
                 data = JSON.parse(file)['data'];
             } catch (error) {
